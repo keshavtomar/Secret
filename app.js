@@ -34,7 +34,8 @@ const userSchema = new mongoose.Schema({
   username: String,
   password: String,
   googleId: String,
-  facebookId: String
+  facebookId: String,
+  Secret: String
 })
 
 userSchema.plugin(passportLocalMongoose);
@@ -99,17 +100,17 @@ app.get("/register", (req, res) => {
 })
 
 app.get("/secrets", (req, res) => {
-  // User.findOrCreate({email:"keseeehav@gmail.com"},function(err){
-  //   if(!err){
-  //     console.log("User created successfully");
-  //   }
-  // })
-  if (req.isAuthenticated()) {
-    res.render("secrets");
-  } else {
-    res.redirect("/login");
-  }
-})
+  User.find({"Secret":{$exists:true}}, function(err, foundedUsers){
+    if(err){
+      console.log(err);
+    }
+    else{
+      if(foundedUsers){
+        res.render("secrets",{usersWithSecrets: foundedUsers});
+      }
+    }
+  });
+});
 
 app.get('/auth/google',
   passport.authenticate('google', {
@@ -175,6 +176,34 @@ app.post("/login", (req, res) => {
 app.get("/logout", function(req, res) {
   req.logout();
   res.redirect('/login');
+});
+
+app.get("/submit",(req,res)=>{
+  if (req.isAuthenticated()) {
+    res.render("submit");
+  } else {
+    res.redirect("/login");
+  }
+})
+
+app.post("/submit", (req,res)=>{
+  const submittedSecret = req.body.secret;
+
+  console.log(req.user.id);
+
+  User.findById(req.user.id, function(err,foundUser){
+    if(err){
+      console.log(err);
+    }
+    else{
+      if(foundUser){
+        foundUser.Secret = submittedSecret;
+        foundUser.save(function(){
+          res.redirect("/secrets");
+        });
+      }
+    }
+  });
 });
 
 
